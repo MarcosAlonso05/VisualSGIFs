@@ -1,0 +1,87 @@
+// src/ConfigHelper.ts
+import * as vscode from 'vscode';
+
+// Define the 'moods' or 'events' that can trigger a GIF
+export type GifMood = 'error' | 'afk' | 'test';
+
+// Define the display position options
+export type GifPosition = 'bottom-right' | 'bottom-left' | 'top-right' | 'top-left';
+
+export class ConfigHelper {
+
+    /**
+     * Helper function to get the extension's configuration.
+     */
+    private getConfig() {
+        // 'visualsgifs' must match the 'name' in your package.json
+        return vscode.workspace.getConfiguration('visualsgifs');
+    }
+
+    /**
+     * Gets the absolute path to the user's main GIF folder.
+     * Returns null if not set.
+     */
+    public getGifFolderPath(): string | null {
+        return this.getConfig().get<string | null>('gifFolderPath', null);
+    }
+
+    /**
+     * Gets the list of active series (sub-folders).
+     */
+    public getActiveSeries(): string[] {
+        return this.getConfig().get<string[]>('activeSeries', []);
+    }
+
+    /**
+     * Gets the configured AFK time in milliseconds.
+     */
+    public getAfkTimeInMs(): number {
+        const minutes = this.getConfig().get<number>('afk.timeInMinutes', 5);
+        return minutes * 60 * 1000; // Convert minutes to milliseconds
+    }
+
+    /**
+     * Gets the list of tags for a specific mood (e.g., 'error').
+     */
+    public getTagsForMood(mood: GifMood): string[] {
+        const configMap = {
+            'error': 'tags.error',
+            'afk': 'tags.afk',
+            'test': 'tags.test'
+        };
+        const configKey = configMap[mood];
+        return this.getConfig().get<string[]>(configKey, []);
+    }
+
+    // --- Display Settings ---
+
+    /**
+     * Gets the configured display position.
+     */
+    public getPosition(): GifPosition {
+        return this.getConfig().get<GifPosition>('display.position', 'bottom-right');
+    }
+
+    /**
+     * Gets the configured max width for the GIF.
+     */
+    public getMaxWidth(): number {
+        return this.getConfig().get<number>('display.maxWidth', 300);
+    }
+
+    /**
+     * Gets the configured max height for the GIF.
+     */
+    public getMaxHeight(): number {
+        return this.getConfig().get<number>('display.maxHeight', 300);
+    }
+
+    /**
+     * Gets the configured display duration in milliseconds.
+     * Returns 0 if it should stay open.
+     */
+    public getDurationInMs(): number {
+        const seconds = this.getConfig().get<number>('display.durationSeconds', 5);
+        return seconds * 1000; // Convert to milliseconds
+    }
+}
