@@ -1,7 +1,7 @@
 // src/GifDisplayManager.ts
 import * as vscode from 'vscode';
 import { ConfigHelper, GifPosition } from './ConfigHelper';
-import { promises as fs } from 'fs'; // Importamos 'fs' para leer el archivo
+import { promises as fs } from 'fs';
 
 export class GifDisplayManager {
     private configHelper: ConfigHelper;
@@ -12,72 +12,52 @@ export class GifDisplayManager {
         this.configHelper = configHelper;
     }
 
-    /**
-     * Shows a GIF as a decoration in the active editor.
-     * Esta función es 'async' ahora para poder leer el archivo.
-     */
     public async showGif(gifPath: string) {
-        // 1. Get the active editor
         const editor = vscode.window.activeTextEditor;
         if (!editor) {
-            console.warn('[visualSgifs] No active editor to show GIF in.');
+            console.warn('[visualSgifs] No active editor.');
             return;
         }
 
-        // 2. Clear any existing GIF and its timer
         this.hideGif();
 
-        // 3. Get all display configurations
         const position = this.configHelper.getPosition();
         const maxWidth = this.configHelper.getMaxWidth();
         const maxHeight = this.configHelper.getMaxHeight();
         const durationMs = this.configHelper.getDurationInMs();
 
-        // 4. *** NUEVA LÓGICA: LEER ARCHIVO Y CONVERTIR A BASE64 ***
+        // Leer GIF y convertirlo a Base64
         let gifData: Buffer;
         try {
             gifData = await fs.readFile(gifPath);
         } catch (error) {
-            console.error('[visualSgifs] Failed to read GIF file:', error);
+            console.error('[visualSgifs] Failed to read GIF:', error);
             vscode.window.showErrorMessage(`visualSgifs: Failed to read GIF file at ${gifPath}`);
             return;
         }
-        
-        // Convertir el buffer a string Base64
+
         const base64Data = gifData.toString('base64');
         const dataUri = `data:image/gif;base64,${base64Data}`;
-        // *** FIN DE LA NUEVA LÓGICA ***
 
-        // 5. Create the CSS for the decoration
-        const decorationCss = this.createDecorationCss(
-            dataUri, // Usamos el dataUri en lugar del webviewUri
-            position,
-            maxWidth,
-            maxHeight
-        );
+        // Crear el objeto "after" que acepta VS Code (cast a any para evitar errores de tipo TS)
+        const afterAttachment = this.createAfterAttachment(dataUri, position, maxWidth, maxHeight) as any;
 
-        // 6. Create the decoration type
+        // Crear la decoración usando el objeto correcto
         this.currentDecoration = vscode.window.createTextEditorDecorationType({
-            // 'after' espera un objeto de tipo 'DecorationRenderOptions'
-            after: decorationCss,
+            after: afterAttachment,
             isWholeLine: true,
         });
 
-        // 7. Apply the decoration
-        const range = new vscode.Range(0, 0, 0, 0);
+        // Aplicar la decoración en una línea visible (línea actual para mayor seguridad)
+        const line = Math.max(0, editor.selection.active.line);
+        const range = new vscode.Range(line, 0, line, 0);
         editor.setDecorations(this.currentDecoration, [range]);
 
-        // 8. Set timer to close it
         if (durationMs > 0) {
-            this.closeTimer = setTimeout(() => {
-                this.hideGif();
-            }, durationMs);
+            this.closeTimer = setTimeout(() => this.hideGif(), durationMs);
         }
     }
 
-    /**
-     * Removes the currently displayed GIF decoration.
-     */
     public hideGif() {
         if (this.closeTimer) {
             clearTimeout(this.closeTimer);
@@ -90,55 +70,42 @@ export class GifDisplayManager {
     }
 
     /**
-     * Generates the CSS object for the decoration's pseudo-element.
-     * Ahora devuelve el tipo correcto: 'DecorationRenderOptions'
+     * Devuelve el objeto que se asignará a la propiedad `after` de DecorationRenderOptions.
+     * Se modela como un attachment con contentText y textDecoration (background-image).
      */
-    private createDecorationCss(
-        dataUri: string, // <-- Cambiado de webviewUri a dataUri
+    private createAfterAttachment(
+        dataUri: string,
         position: GifPosition,
         maxWidth: number,
         maxHeight: number
-    ): vscode.DecorationRenderOptions { // <-- TIPO CORREGIDO
-        
-        // Base CSS for the GIF
-        const baseStyles: { [key: string]: string } = {
-            'content': `''`, 
-            'background-image': `url(${dataUri})`, // <-- Usamos el dataUri
-            'background-size': 'contain',
-            'background-repeat': 'no-repeat',
-            'background-position': 'center center',
-            'position': 'absolute',
-            'pointer-events': 'auto', // Lo cambiamos a 'auto' para el clic
-            'z-index': '100',
-            'width': `${maxWidth}px`,
-            'height': `${maxHeight}px`,
-            'max-width': `${maxWidth}px`,
-            'max-height': `${maxHeight}px`,
-            'font-size': '0px', // Hack para que el 'after' tenga 'cuerpo'
+    ) {
+        // Usamos contentText vacío y textDecoration para incrustar la imagen
+        // margin, width y height son aceptados por la API en el "after" attachment
+        const base: {
+            contentText: string;
+            margin?: string;
+            height?: string;
+            width?: string;
+            textDecoration?: string;
+            // tooltip?: string; // si quieres tooltip
+        } = {
+            contentText: '',
+            // margen para intentar separarlo visualmente; aquí controlamos solo orientación básica
+            margin: position === 'top-right' || position === 'bottom-right' ? '0 0 0 16px' : '0 16px 0 0',
+            width: `${maxWidth}px`,
+            height: `${maxHeight}px`,
+            textDecoration: `
+                ; display: inline-block;
+                vertical-align: middle;
+                width: ${maxWidth}px;
+                height: ${maxHeight}px;
+                background-image: url("${dataUri}");
+                background-size: contain;
+                background-repeat: no-repeat;
+                background-position: center center;
+            `,
         };
 
-        // Add position styles
-        const margin = '20px'; 
-        switch (position) {
-            case 'top-left':
-                baseStyles['top'] = margin;
-                baseStyles['left'] = margin;
-                break;
-            case 'top-right':
-                baseStyles['top'] = margin;
-                baseStyles['right'] = margin;
-                break;
-            case 'bottom-left':
-                baseStyles['bottom'] = margin;
-                baseStyles['left'] = margin;
-                break;
-            case 'bottom-right':
-                baseStyles['bottom'] = margin;
-                baseStyles['right'] = margin;
-                break;
-        }
-
-        // El objeto 'baseStyles' coincide con la estructura de 'DecorationRenderOptions'
-        return baseStyles as vscode.DecorationRenderOptions;
+        return base;
     }
 }
