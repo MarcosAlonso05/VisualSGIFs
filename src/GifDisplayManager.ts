@@ -2,11 +2,11 @@ import * as vscode from 'vscode';
 import { ConfigHelper, GifPosition } from './ConfigHelper';
 import { promises as fs } from 'fs';
 
-// Implement vscode.Disposable to ensure cleanup
 export class GifDisplayManager implements vscode.Disposable {
     private configHelper: ConfigHelper;
     private currentDecoration: vscode.TextEditorDecorationType | null = null;
     private closeTimer: NodeJS.Timeout | null = null;
+    private cursorChangeListener: vscode.Disposable | null = null;
 
     constructor(configHelper: ConfigHelper) {
         this.configHelper = configHelper;
@@ -15,45 +15,62 @@ export class GifDisplayManager implements vscode.Disposable {
     public async showGif(gifPath: string) {
         const editor = vscode.window.activeTextEditor;
         if (!editor) {
-            console.warn('[visualSgifs] No active editor.');
             return;
         }
 
-        // Clean previous GIF before showing a new one
         this.hideGif();
 
-        const position = this.configHelper.getPosition();
         const maxWidth = this.configHelper.getMaxWidth();
         const maxHeight = this.configHelper.getMaxHeight();
         const durationMs = this.configHelper.getDurationInMs();
 
-        // Read GIF and convert to Base64
         let gifData: Buffer;
         try {
             gifData = await fs.readFile(gifPath);
         } catch (error) {
             console.error('[visualSgifs] Failed to read GIF:', error);
-            vscode.window.showErrorMessage(`visualSgifs: Failed to read GIF file at ${gifPath}`);
             return;
         }
 
         const base64Data = gifData.toString('base64');
         const dataUri = `data:image/gif;base64,${base64Data}`;
 
-        const afterAttachment = this.createAfterAttachment(dataUri, position, maxWidth, maxHeight) as any;
+        // 1. Generate CSS attachment
+        const afterAttachment = this.createCursorFollowerAttachment(dataUri, maxWidth, maxHeight) as any;
 
+        // 2. Create Decoration
+        // We set isWholeLine to FALSE so it anchors to the specific cursor character
         this.currentDecoration = vscode.window.createTextEditorDecorationType({
             after: afterAttachment,
-            isWholeLine: true,
+            isWholeLine: false,
+            rangeBehavior: vscode.DecorationRangeBehavior.ClosedClosed
         });
 
-        const line = Math.max(0, editor.selection.active.line);
-        const range = new vscode.Range(line, 0, line, 0);
-        editor.setDecorations(this.currentDecoration, [range]);
+        // 3. Initial Paint
+        this.updateGifPosition(editor);
+
+        // 4. Start Cursor Listener
+        this.cursorChangeListener = vscode.window.onDidChangeTextEditorSelection((e) => {
+            if (e.textEditor === editor && this.currentDecoration) {
+                this.updateGifPosition(editor);
+            }
+        });
 
         if (durationMs > 0) {
             this.closeTimer = setTimeout(() => this.hideGif(), durationMs);
         }
+    }
+
+    private updateGifPosition(editor: vscode.TextEditor) {
+        if (!this.currentDecoration) return;
+
+        // Get the exact cursor position
+        const position = editor.selection.active;
+        
+        // Create a range of zero length at the cursor position
+        const range = new vscode.Range(position, position);
+
+        editor.setDecorations(this.currentDecoration, [range]);
     }
 
     public hideGif() {
@@ -65,42 +82,57 @@ export class GifDisplayManager implements vscode.Disposable {
             this.currentDecoration.dispose();
             this.currentDecoration = null;
         }
+        if (this.cursorChangeListener) {
+            this.cursorChangeListener.dispose();
+            this.cursorChangeListener = null;
+        }
     }
 
-    // Required by vscode.Disposable
     public dispose() {
         this.hideGif();
     }
 
-    private createAfterAttachment(
+    private createCursorFollowerAttachment(
         dataUri: string,
-        position: GifPosition,
         maxWidth: number,
         maxHeight: number
     ) {
-        const base: {
-            contentText: string;
-            margin?: string;
-            height?: string;
-            width?: string;
-            textDecoration?: string;
-        } = {
+        // Calculate negative top to pull the image UP.
+        // We use the image height to pull it up so it sits exactly on top of the text.
+        // We add a few pixels (-5px) to give it a tiny bit of padding from the text.
+        const topOffset = maxHeight; 
+
+        return {
             contentText: '',
-            margin: position === 'top-right' || position === 'bottom-right' ? '0 0 0 16px' : '0 16px 0 0',
-            width: `${maxWidth}px`,
-            height: `${maxHeight}px`,
             textDecoration: `
-                ; display: inline-block;
-                vertical-align: middle;
+                ; 
+                display: inline-block;
+                position: absolute;
+                
+                /* HORIZONTAL POSITION: */
+                /* Move it 10px to the RIGHT of the cursor so it doesn't block text */
+                left: 10px;
+                
+                /* VERTICAL POSITION: */
+                /* This is the key fix. We pull it UP by its own height. */
+                /* top: 0 would be the underline of the text. */
+                /* top: -300px (example) moves it above the line. */
+                top: -${topOffset}px;
+
+                /* SIZE */
                 width: ${maxWidth}px;
                 height: ${maxHeight}px;
+                
+                /* IMAGE */
                 background-image: url("${dataUri}");
                 background-size: contain;
                 background-repeat: no-repeat;
-                background-position: center center;
+                background-position: bottom left; /* Anchor image to bottom-left of its box */
+                
+                /* BEHAVIOR */
+                pointer-events: none;
+                z-index: 1;
             `,
         };
-
-        return base;
     }
 }
