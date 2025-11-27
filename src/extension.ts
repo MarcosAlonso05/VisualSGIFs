@@ -1,4 +1,3 @@
-// src/extension.ts
 import * as vscode from 'vscode';
 import { ConfigHelper } from './ConfigHelper';
 import { LocalGifProvider } from './LocalGifProvider';
@@ -20,23 +19,24 @@ export function activate(context: vscode.ExtensionContext) {
         gifDisplayManager
     );
 
-    // 2. Start monitoring for events
+    // 2. Start monitoring
     eventMonitor.startMonitoring();
 
-    // 3. Register the "Hello World" command as our Test command
+    // 3. Register Disposables
+    // This ensures that when the extension is deactivated, timers and listeners are cleaned up.
+    context.subscriptions.push(eventMonitor);
+    context.subscriptions.push(gifDisplayManager);
+
+    // 4. Register the Test command
     let disposable = vscode.commands.registerCommand('visualsgifs.helloWorld', () => {
-        
-        // Show a quick notification
         vscode.window.showInformationMessage('Test: Triggering a GIF...');
-        
-        // Manually trigger the 'test' mood
         eventMonitor.triggerGif('test');
     });
 
     context.subscriptions.push(disposable);
 }
 
-// This method is called when your extension is deactivated
 export function deactivate() {
     console.log('[visualSgifs] Extension deactivated.');
+    // context.subscriptions will be disposed of automatically by VS Code
 }
