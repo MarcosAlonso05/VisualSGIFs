@@ -35,21 +35,20 @@ export class GifDisplayManager implements vscode.Disposable {
         const base64Data = gifData.toString('base64');
         const dataUri = `data:image/gif;base64,${base64Data}`;
 
-        // 1. Generate CSS attachment
+        // 1. Crear el CSS corregido con TRANSFORM
         const afterAttachment = this.createCursorFollowerAttachment(dataUri, maxWidth, maxHeight) as any;
 
-        // 2. Create Decoration
-        // We set isWholeLine to FALSE so it anchors to the specific cursor character
+        // 2. Configurar la decoración
         this.currentDecoration = vscode.window.createTextEditorDecorationType({
             after: afterAttachment,
-            isWholeLine: false,
-            rangeBehavior: vscode.DecorationRangeBehavior.ClosedClosed
+            isWholeLine: false, // Vital: Falso para que se pegue al carácter
+            rangeBehavior: vscode.DecorationRangeBehavior.ClosedClosed // Vital: Para que no se expanda al escribir
         });
 
-        // 3. Initial Paint
+        // 3. Pintar inicial
         this.updateGifPosition(editor);
 
-        // 4. Start Cursor Listener
+        // 4. Activar el seguimiento del cursor
         this.cursorChangeListener = vscode.window.onDidChangeTextEditorSelection((e) => {
             if (e.textEditor === editor && this.currentDecoration) {
                 this.updateGifPosition(editor);
@@ -64,10 +63,8 @@ export class GifDisplayManager implements vscode.Disposable {
     private updateGifPosition(editor: vscode.TextEditor) {
         if (!this.currentDecoration) return;
 
-        // Get the exact cursor position
+        // Posición exacta del cursor
         const position = editor.selection.active;
-        
-        // Create a range of zero length at the cursor position
         const range = new vscode.Range(position, position);
 
         editor.setDecorations(this.currentDecoration, [range]);
@@ -97,40 +94,40 @@ export class GifDisplayManager implements vscode.Disposable {
         maxWidth: number,
         maxHeight: number
     ) {
-        // Calculate negative top to pull the image UP.
-        // We use the image height to pull it up so it sits exactly on top of the text.
-        // We add a few pixels (-5px) to give it a tiny bit of padding from the text.
-        const topOffset = maxHeight; 
-
+        // La magia está aquí:
+        // No usamos 'left' ni 'top' como propiedades directas porque eso ancla a la ventana.
+        // Usamos 'transform: translate(X, Y)' que mueve relativo al origen (el cursor).
+        
+        // X = 60px (a la derecha del cursor)
+        // Y = -100% (hacia arriba, usando la propia altura de la imagen)
+        
         return {
             contentText: '',
             textDecoration: `
                 ; 
                 display: inline-block;
-                position: absolute;
+                position: absolute; /* Saca el elemento del flujo para que NO empuje el texto */
                 
-                /* HORIZONTAL POSITION: */
-                /* Move it 10px to the RIGHT of the cursor so it doesn't block text */
-                left: 10px;
-                
-                /* VERTICAL POSITION: */
-                /* This is the key fix. We pull it UP by its own height. */
-                /* top: 0 would be the underline of the text. */
-                /* top: -300px (example) moves it above the line. */
-                top: -${topOffset}px;
+                /* IMPORTANTE: NO definir 'left' ni 'top'. 
+                   Al no definirlos, el 'absolute' empieza exactamente donde está el cursor. */
 
-                /* SIZE */
+                /* MOVIMIENTO RELATIVO AL CURSOR */
+                /* translate(X, Y) */
+                /* 60px a la derecha, -${maxHeight}px hacia arriba */
+                transform: translate(60px, -${maxHeight}px);
+
+                /* TAMAÑO */
                 width: ${maxWidth}px;
                 height: ${maxHeight}px;
                 
-                /* IMAGE */
+                /* IMAGEN */
                 background-image: url("${dataUri}");
                 background-size: contain;
                 background-repeat: no-repeat;
-                background-position: bottom left; /* Anchor image to bottom-left of its box */
+                background-position: bottom left; 
                 
-                /* BEHAVIOR */
-                pointer-events: none;
+                /* PROPIEDADES */
+                pointer-events: none; /* Click fantasma */
                 z-index: 1;
             `,
         };
