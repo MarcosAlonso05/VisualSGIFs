@@ -1,7 +1,6 @@
-// src/LocalGifProvider.ts
 import * as vscode from 'vscode';
-import { promises as fs } from 'fs'; // Importamos 'fs/promises' como 'fs'
-import { Dirent } from 'fs'; // Usamos 'fs/promises' para la versión asíncrona
+import { promises as fs } from 'fs';
+import { Dirent } from 'fs';
 import * as path from 'path';
 import { ConfigHelper, GifMood } from './ConfigHelper';
 
@@ -9,13 +8,10 @@ export class LocalGifProvider {
     
     constructor(private configHelper: ConfigHelper) {}
 
-    /**
-     * Finds all matching GIFs and picks one at random.
-     * Returns the full path to the GIF, or null if none is found.
-     */
+    // Finds all matching GIFs and picks one at random. Returns the full path to the GIF, or null if none is found.
     public async getRandomGifPath(mood: GifMood): Promise<string | null> {
         
-        // 1. Get configuration
+        // Get configuration
         const folderPath = this.configHelper.getGifFolderPath();
         if (!folderPath) {
             vscode.window.showErrorMessage('visualSgifs: GIF Folder Path is not set. Please update your settings.');
@@ -35,7 +31,7 @@ export class LocalGifProvider {
         
         let allFoundGifs: string[] = [];
 
-        // 2. Scan Root Folder (non-recursive)
+        // Scan Root Folder (non-recursive)
         try {
             const rootGifs = await this.findGifsInDir(folderPath, tagToFind);
             allFoundGifs.push(...rootGifs);
@@ -43,7 +39,7 @@ export class LocalGifProvider {
             console.error(`[visualSgifs] Error scanning root folder: ${folderPath}`, error);
         }
 
-        // 3. Scan Active Series Folders (recursive)
+        // Scan Active Series Folders (recursive)
         for (const series of activeSeries) {
             const seriesPath = path.join(folderPath, series);
             try {
@@ -54,7 +50,7 @@ export class LocalGifProvider {
             }
         }
 
-        // 4. Select a final GIF
+        // Select a final GIF
         if (allFoundGifs.length === 0) {
             console.warn(`[visualSgifs] No GIFs found for tag: ${tagToFind}`);
             return null;
@@ -65,15 +61,12 @@ export class LocalGifProvider {
         return randomGifPath;
     }
 
-    /**
-     * Finds matching GIFs in a *single* directory (non-recursive).
-     */
+    // Finds matching GIFs in a *single* directory (non-recursive).
     private async findGifsInDir(dir: string, tag: string): Promise<string[]> {
         let dirents: Dirent[];
         try {
             dirents = await fs.readdir(dir, { withFileTypes: true });
         } catch (error) {
-            // Folder probably doesn't exist, which is fine.
             return [];
         }
 
@@ -88,10 +81,7 @@ export class LocalGifProvider {
         return gifFiles;
     }
 
-    /**
-     * Finds matching GIFs in a directory *and all its subdirectories* (recursive).
-     * This is used for 'k-on/' and 'k-on/yui/' etc.
-     */
+    // Finds matching GIFs in a directory *and all its subdirectories*
     private async findGifsInDirRecursive(dir: string, tag: string): Promise<string[]> {
         let foundGifs: string[] = [];
         let dirents: Dirent[];
@@ -99,14 +89,12 @@ export class LocalGifProvider {
         try {
             dirents = await fs.readdir(dir, { withFileTypes: true });
         } catch (error) {
-            // Folder doesn't exist or isn't a directory.
             return [];
         }
 
         for (const dirent of dirents) {
             const fullPath = path.join(dir, dirent.name);
             if (dirent.isDirectory()) {
-                // It's a directory, go deeper
                 const gifsInSubdir = await this.findGifsInDirRecursive(fullPath, tag);
                 foundGifs.push(...gifsInSubdir);
             } else if (
@@ -114,7 +102,6 @@ export class LocalGifProvider {
                 dirent.name.startsWith(`${tag}_`) &&
                 dirent.name.endsWith('.gif')
             ) {
-                // It's a matching file
                 foundGifs.push(fullPath);
             }
         }

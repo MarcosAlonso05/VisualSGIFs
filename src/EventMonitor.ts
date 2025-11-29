@@ -3,7 +3,6 @@ import { ConfigHelper } from './ConfigHelper';
 import { GifDisplayManager } from './GifDisplayManager';
 import { LocalGifProvider } from './LocalGifProvider';
 
-// Implement vscode.Disposable
 export class EventMonitor implements vscode.Disposable {
     private afkTimer: NodeJS.Timeout | undefined;
     private lastErrorLine = -1;
@@ -18,22 +17,18 @@ export class EventMonitor implements vscode.Disposable {
     ) {}
 
     public startMonitoring() {
-        // 1. AFK Monitoring
         this.resetAfkTimer();
 
-        // Push listeners to the disposables array
         this.disposables.push(
             vscode.workspace.onDidChangeTextDocument(() => this.resetAfkTimer()),
             vscode.window.onDidChangeActiveTextEditor(() => this.resetAfkTimer()),
             vscode.window.onDidChangeTextEditorSelection(() => this.resetAfkTimer())
         );
 
-        // 2. Error Monitoring
         this.disposables.push(
             vscode.languages.onDidChangeDiagnostics(e => this.onDiagnosticChange(e))
         );
 
-        // 3. Click-to-Close Monitoring
         this.disposables.push(
             vscode.window.onDidChangeTextEditorSelection(e => {
                 if (e.kind === vscode.TextEditorSelectionChangeKind.Mouse) {
@@ -42,7 +37,7 @@ export class EventMonitor implements vscode.Disposable {
             })
         );
 
-        // 4. Listen for config changes
+        // Listen for config changes
         this.disposables.push(
             vscode.workspace.onDidChangeConfiguration(e => {
                 if (e.affectsConfiguration('visualsgifs')) {
@@ -53,9 +48,7 @@ export class EventMonitor implements vscode.Disposable {
         );
     }
 
-    /**
-     * Clean up timers and listeners.
-     */
+    // Clean up timers and listeners.
     public dispose() {
         if (this.afkTimer) {
             clearTimeout(this.afkTimer);

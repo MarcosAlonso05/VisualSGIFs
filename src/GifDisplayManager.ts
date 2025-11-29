@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { ConfigHelper, GifPosition } from './ConfigHelper';
+import { ConfigHelper } from './ConfigHelper';
 import { promises as fs } from 'fs';
 
 export class GifDisplayManager implements vscode.Disposable {
@@ -35,20 +35,18 @@ export class GifDisplayManager implements vscode.Disposable {
         const base64Data = gifData.toString('base64');
         const dataUri = `data:image/gif;base64,${base64Data}`;
 
-        // 1. Crear el CSS corregido con TRANSFORM
         const afterAttachment = this.createCursorFollowerAttachment(dataUri, maxWidth, maxHeight) as any;
 
-        // 2. Configurar la decoración
+        // Decorator configure
         this.currentDecoration = vscode.window.createTextEditorDecorationType({
             after: afterAttachment,
-            isWholeLine: false, // Vital: Falso para que se pegue al carácter
-            rangeBehavior: vscode.DecorationRangeBehavior.ClosedClosed // Vital: Para que no se expanda al escribir
+            isWholeLine: false,
+            rangeBehavior: vscode.DecorationRangeBehavior.ClosedClosed
         });
 
-        // 3. Pintar inicial
         this.updateGifPosition(editor);
 
-        // 4. Activar el seguimiento del cursor
+        // Follow the cursor 
         this.cursorChangeListener = vscode.window.onDidChangeTextEditorSelection((e) => {
             if (e.textEditor === editor && this.currentDecoration) {
                 this.updateGifPosition(editor);
@@ -60,10 +58,10 @@ export class GifDisplayManager implements vscode.Disposable {
         }
     }
 
+    // Update the decorator to show the gif in the cursor position
     private updateGifPosition(editor: vscode.TextEditor) {
         if (!this.currentDecoration) return;
 
-        // Posición exacta del cursor
         const position = editor.selection.active;
         const range = new vscode.Range(position, position);
 
@@ -93,14 +91,7 @@ export class GifDisplayManager implements vscode.Disposable {
         dataUri: string,
         maxWidth: number,
         maxHeight: number
-    ) {
-        // La magia está aquí:
-        // No usamos 'left' ni 'top' como propiedades directas porque eso ancla a la ventana.
-        // Usamos 'transform: translate(X, Y)' que mueve relativo al origen (el cursor).
-        
-        // X = 60px (a la derecha del cursor)
-        // Y = -100% (hacia arriba, usando la propia altura de la imagen)
-        
+    ) { 
         return {
             contentText: '',
             textDecoration: `
