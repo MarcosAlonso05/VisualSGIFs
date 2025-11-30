@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 
 // Define the 'moods' or 'events' that can trigger a GIF.
-export type GifMood = 'error' | 'afk' | 'test';
+export type GifMood = 'error' | 'afk' | 'test' | 'success';
 
 export class ConfigHelper {
 
@@ -31,7 +31,8 @@ export class ConfigHelper {
         const configMap = {
             'error': 'tags.error',
             'afk': 'tags.afk',
-            'test': 'tags.test'
+            'test': 'tags.test',
+            'success': 'tags.success'
         };
         const configKey = configMap[mood];
         return this.getConfig().get<string[]>(configKey, []);

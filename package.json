@@ -36,25 +36,14 @@
           "default": [],
           "description": "List of series (sub-folders) to activate. (e.g., [\"k-on\", \"lain\"]) GIFs in the root folder are always active."
         },
-        "visualsgifs.display.position": {
-          "type": "string",
-          "enum": [
-            "bottom-right",
-            "bottom-left",
-            "top-right",
-            "top-left"
-          ],
-          "default": "bottom-right",
-          "description": "Corner of the editor to display the GIF."
-        },
         "visualsgifs.display.maxWidth": {
           "type": "number",
-          "default": 300,
+          "default": 200,
           "description": "The maximum width (in pixels) of the GIF."
         },
         "visualsgifs.display.maxHeight": {
           "type": "number",
-          "default": 300,
+          "default": 200,
           "description": "The maximum height (in pixels) of the GIF."
         },
         "visualsgifs.display.durationSeconds": {
@@ -95,6 +84,16 @@
             "test"
           ],
           "description": "Tags to search for with the 'Test GIF' command."
+        },
+        "visualsgifs.tags.success": {
+          "type": "array",
+          "default": [
+            "happy",
+            "dance",
+            "celebrate",
+            "success"
+          ],
+          "description": "Tags to search for when code finishes successfully (Exit Code 0) or Debugging ends."
         }
       }
     }

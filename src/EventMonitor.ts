@@ -19,16 +19,19 @@ export class EventMonitor implements vscode.Disposable {
     public startMonitoring() {
         this.resetAfkTimer();
 
+        // AFK
         this.disposables.push(
             vscode.workspace.onDidChangeTextDocument(() => this.resetAfkTimer()),
             vscode.window.onDidChangeActiveTextEditor(() => this.resetAfkTimer()),
             vscode.window.onDidChangeTextEditorSelection(() => this.resetAfkTimer())
         );
 
+        // Errors
         this.disposables.push(
             vscode.languages.onDidChangeDiagnostics(e => this.onDiagnosticChange(e))
         );
 
+        // Hide the GIF
         this.disposables.push(
             vscode.window.onDidChangeTextEditorSelection(e => {
                 if (e.kind === vscode.TextEditorSelectionChangeKind.Mouse) {
@@ -36,6 +39,45 @@ export class EventMonitor implements vscode.Disposable {
                 }
             })
         );
+
+        // Good execution
+        this.disposables.push(
+            vscode.tasks.onDidEndTaskProcess(e => {
+                if (e.exitCode === 0) {
+                    this.triggerGif('success');
+                }
+            })
+        );
+        this.disposables.push(
+            vscode.debug.onDidReceiveDebugSessionCustomEvent(e => {
+                if (e.event === 'exited' && e.body?.exitCode === 0) {
+                    this.triggerGif('success');
+                }
+            })
+        );
+        this.disposables.push(
+            vscode.debug.onDidTerminateDebugSession(session => {
+                this.triggerGif('success'); 
+            })
+        );
+        if (vscode.window.onDidEndTerminalShellExecution) {
+            this.disposables.push(
+                vscode.window.onDidEndTerminalShellExecution(e => {
+                    if (e.exitCode === 0) {
+                        this.triggerGif('success');
+                    }
+                })
+            );
+        } else {
+            console.warn('[visualSgifs] Shell Integration API not available. Update VS Code for Terminal support.');
+        }
+        this.disposables.push(
+            vscode.debug.onDidTerminateDebugSession(session => {
+                console.log('[visualSgifs] Debug session terminated.');
+                this.triggerGif('success');
+            })
+        );
+        
 
         // Listen for config changes
         this.disposables.push(
@@ -92,11 +134,13 @@ export class EventMonitor implements vscode.Disposable {
         }
     }
 
-    public async triggerGif(mood: 'afk' | 'error' | 'test') {
+    public async triggerGif(mood: 'afk' | 'error' | 'test' | 'success') {
         try {
             const gifPath = await this.gifProvider.getRandomGifPath(mood);
             if (!gifPath) {
-                console.warn(`[visualSgifs] No GIF found for mood: ${mood}`);
+                if (mood !== 'success') {
+                    console.warn(`[visualSgifs] No GIF found for mood: ${mood}`);
+                }
                 return;
             }
             await this.displayManager.showGif(gifPath);
