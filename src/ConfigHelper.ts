@@ -26,6 +26,19 @@ export class ConfigHelper {
         return minutes * 60 * 1000;
     }
 
+    // Activation methods
+    public isErrorEnabled(): boolean {
+        return this.getConfig().get<boolean>('events.enableError', true);
+    }
+
+    public isAfkEnabled(): boolean {
+        return this.getConfig().get<boolean>('events.enableAfk', true);
+    }
+
+    public isSuccessEnabled(): boolean {
+        return this.getConfig().get<boolean>('events.enableSuccess', true);
+    }
+
     // Gets the list of tags for a specific mood.
     public getTagsForMood(mood: GifMood): string[] {
         const configMap = {

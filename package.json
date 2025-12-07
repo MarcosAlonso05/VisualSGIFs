@@ -99,6 +99,21 @@
           "type": "number",
           "default": 3000,
           "description": "Milliseconds to wait before showing an error GIF. Helps avoid showing GIFs while typing. (Default: 3000ms)"
+        },
+        "visualsgifs.events.enableError": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable or disable GIFs when a syntax error is detected."
+        },
+        "visualsgifs.events.enableAfk": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable or disable GIFs when you are away from keyboard (AFK)."
+        },
+        "visualsgifs.events.enableSuccess": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable or disable GIFs when code execution or tasks finish successfully."
         }
       }
     }

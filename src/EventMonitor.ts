@@ -108,8 +108,13 @@ export class EventMonitor implements vscode.Disposable {
             clearTimeout(this.afkTimer);
         }
 
-        const afkTimeInMs = this.configHelper.getAfkTimeInMs();
+        this.displayManager.hideGif();
 
+        if (!this.configHelper.isAfkEnabled()) {
+            return;
+        }
+
+        const afkTimeInMs = this.configHelper.getAfkTimeInMs();
         if (afkTimeInMs > 0) {
             this.afkTimer = setTimeout(() => {
                 this.triggerGif('afk');
@@ -118,6 +123,11 @@ export class EventMonitor implements vscode.Disposable {
     }
 
     private onDiagnosticChange(diagnosticEvent: vscode.DiagnosticChangeEvent) {
+        
+        if (!this.configHelper.isErrorEnabled()) {
+            return;
+        }
+
         const activeEditor = vscode.window.activeTextEditor;
         if (!activeEditor) return;
 
