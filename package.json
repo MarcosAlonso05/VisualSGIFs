@@ -94,6 +94,11 @@
             "success"
           ],
           "description": "Tags to search for when code finishes successfully (Exit Code 0) or Debugging ends."
+        },
+        "visualsgifs.error.debounceTime": {
+          "type": "number",
+          "default": 3000,
+          "description": "Milliseconds to wait before showing an error GIF. Helps avoid showing GIFs while typing. (Default: 3000ms)"
         }
       }
     }

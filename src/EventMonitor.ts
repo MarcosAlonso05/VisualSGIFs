@@ -5,6 +5,7 @@ import { LocalGifProvider } from './LocalGifProvider';
 
 export class EventMonitor implements vscode.Disposable {
     private afkTimer: NodeJS.Timeout | undefined;
+    private errorDebounceTimer: NodeJS.Timeout | undefined;
     private lastErrorLine = -1;
     
     // List of disposables to clean up when extension deactivates
@@ -123,13 +124,39 @@ export class EventMonitor implements vscode.Disposable {
         const diagnostics = vscode.languages.getDiagnostics(activeEditor.document.uri);
         const firstError = diagnostics.find(d => d.severity === vscode.DiagnosticSeverity.Error);
 
+        const debounceTime = this.configHelper.getErrorDebounceTime();
+
         if (firstError) {
-            if (firstError.range.start.line !== this.lastErrorLine) {
-                this.lastErrorLine = firstError.range.start.line;
-                console.log('[visualSgifs] New error detected.');
-                this.triggerGif('error');
+            if (firstError.range.start.line === this.lastErrorLine) {
+                return;
             }
+
+            if (!this.errorDebounceTimer) {
+                this.errorDebounceTimer = setTimeout(() => {
+                    
+                    const currentDiagnostics = vscode.languages.getDiagnostics(activeEditor.document.uri);
+                    const currentError = currentDiagnostics.find(d => d.severity === vscode.DiagnosticSeverity.Error);
+                    
+                    if (currentError && currentError.range.start.line !== this.lastErrorLine) {
+                        this.lastErrorLine = currentError.range.start.line;
+                        console.log('[visualSgifs] Error persisted. Triggering GIF.');
+                        this.triggerGif('error');
+                    }
+                    this.errorDebounceTimer = undefined;
+
+                }, debounceTime);
+            }
+
         } else {
+            
+            if (this.errorDebounceTimer) {
+                clearTimeout(this.errorDebounceTimer);
+                this.errorDebounceTimer = undefined;
+                console.log('[visualSgifs] Error fixed before timeout. GIF cancelled.');
+            }
+            
+            this.displayManager.hideGif();
+
             this.lastErrorLine = -1;
         }
     }

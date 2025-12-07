@@ -55,4 +55,9 @@ export class ConfigHelper {
         const seconds = this.getConfig().get<number>('display.durationSeconds', 5);
         return seconds * 1000;
     }
+
+    // Waiting time before show error
+    public getErrorDebounceTime(): number {
+        return this.getConfig().get<number>('error.debounceTime', 3000);
+    }
 }
