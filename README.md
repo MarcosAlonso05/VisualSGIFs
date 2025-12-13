@@ -55,9 +55,13 @@ C:/MyGifs/                   <-- Root Folder (Configured in settings)
 
 Describe specific features of your extension including screenshots of your extension in action. Image paths are relative to this README file.
 
-For example if there is an image subfolder under your extension project workspace:
+Smart Error Detection: Reacts to syntax errors (red squigglies) by showing "sad" or "angry" GIFs.
 
-\!\[feature X\]\(images/feature-x.png\)
+\!\[sintax error\]\(readmestuff/1.gif\)
+
+AFK Mode: Shows a "sleeping" or "bored" GIF when you haven't typed or moved the mouse for a set time.
+
+\!\[AFK mode\]\(readmestuff/2.gif\)
 
 ## Extension Settings
 
