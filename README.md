@@ -1,6 +1,55 @@
 # VisualSGIFs
 
-This is the README for your extension "visualsgifs". After writing up a brief description, we recommend including the following sections.
+VisualSGIFs allows you to use GIFs in your work environment while programming. Several events are triggered that cause a GIF to appear above and to the right of the cursor.
+
+## Requirements
+
+Make sure you have the GIFs folder set up correctly
+
+#### Folder Structure & Organization
+
+VisualSGIFs uses a smart hierarchy that allows you to organize your GIFs by Series and Characters.
+
+1. File Naming (Mandatory)
+    Files must start with the mood tag followed by an underscore _.
+
+   - ✅ `happy_01.gif`
+
+   - ✅ `error_computer_smash.gif`
+
+   - ❌ `my_happy_gif.gif` (Won't work because "my" is not a configured tag)
+
+2. Folder Hierarchy
+    You can organize your GIFs into three levels:
+    1. Root Folder: GIFs placed here are ALWAYS active. Use this for generic memes or mixed reactions.
+
+    2. Series Folders (Sub-folders): Folders inside the root represent specific Anime or TV Series (e.g., k-on, LoveLive). These must be activated in the settings to work.
+
+    3. Character Folders (Sub-sub-folders): You can further organize inside a Series folder (e.g., k-on/yui/). The extension scans recursively, so if you activate the series k-on, it automatically includes GIFs inside yui.
+
+3. Activating Series
+    To enable specific sub-folders (series), go to Extension Settings > Active Series and add the folder names. 
+    Example: ["k-on", "LoveLive"]
+
+4. Example Structure
+
+```
+C:/MyGifs/                   <-- Root Folder (Configured in settings)
+ │
+ ├── error_generic.gif       <-- ALWAYS ACTIVE (Global)
+ ├── test_01.gif             <-- ALWAYS ACTIVE (Global)
+ │
+ ├── k-on/                   <-- SERIES FOLDER
+ │    │                      (Only active if "k-on" is added to 'Active Series' setting)
+ │    │
+ │    ├── happy_band.gif     <-- Active when "k-on" is enabled
+ │    │
+ │    └── yui/               <-- CHARACTER FOLDER (Organizational)
+ │         └── cry_yui.gif   <-- Active when "k-on" is enabled
+ │
+ └── LoveLive/                 <-- SERIES FOLDER
+      └── ...                (Ignored unless "elaina" is added to settings)
+```
 
 ## Features
 
@@ -10,62 +59,37 @@ For example if there is an image subfolder under your extension project workspac
 
 \!\[feature X\]\(images/feature-x.png\)
 
-> Tip: Many popular extensions utilize animations. This is an excellent way to show off your extension! We recommend short, focused animations that are easy to follow.
-
-## Requirements
-
-If you have any requirements or dependencies, add a section describing those and how to install and configure them.
-
 ## Extension Settings
-
-Include if your extension adds any VS Code settings through the `contributes.configuration` extension point.
-
-For example:
 
 This extension contributes the following settings:
 
-* `myExtension.enable`: Enable/disable this extension.
-* `myExtension.thing`: Set to `blah` to do something.
+#### General
 
-## Known Issues
+* `visualsgifs.gifFolderPath`: (Required) Absolute path to your GIF collection.
+* `visualsgifs.activeSeries`: List of sub-folders to include (recursive search).
 
-Calling out known issues can help limit users opening duplicate issues against your extension.
+#### Events (Enable/Disable)
 
-## Release Notes
+* `visualsgifs.events.enableError`: Enable GIFs on syntax errors. (Default: true)
+* `visualsgifs.events.enableAfk`: Enable GIFs on inactivity. (Default: true)
+* `visualsgifs.events.enableSuccess`: Enable GIFs on successful execution. (Default: true)
 
-Users appreciate release notes as you update your extension.
+#### Timers & Sensitivity
 
-### 1.0.0
+* `visualsgifs.error.debounceTime`: Milliseconds to wait before showing an error GIF. Prevents flashing while typing.
+* `visualsgifs.afk.timeInMinutes`: Minutes of inactivity before triggering AFK mode.
+* `visualsgifs.display.durationSeconds`: How long the GIF stays on screen.
 
-Initial release of ...
+#### Display
 
-### 1.0.1
+* `visualsgifs.display.maxWidth`: Max width of the GIF in pixels.
+* `visualsgifs.display.maxHeight`: Max height of the GIF in pixels.
 
-Fixed issue #.
+#### Custom Tags
 
-### 1.1.0
+You can customize the keywords used to search for GIFs:
 
-Added features X, Y, and Z.
-
----
-
-## Following extension guidelines
-
-Ensure that you've read through the extensions guidelines and follow the best practices for creating your extension.
-
-* [Extension Guidelines](https://code.visualstudio.com/api/references/extension-guidelines)
-
-## Working with Markdown
-
-You can author your README using Visual Studio Code. Here are some useful editor keyboard shortcuts:
-
-* Split the editor (`Cmd+\` on macOS or `Ctrl+\` on Windows and Linux).
-* Toggle preview (`Shift+Cmd+V` on macOS or `Shift+Ctrl+V` on Windows and Linux).
-* Press `Ctrl+Space` (Windows, Linux, macOS) to see a list of Markdown snippets.
-
-## For more information
-
-* [Visual Studio Code's Markdown Support](http://code.visualstudio.com/docs/languages/markdown)
-* [Markdown Syntax Reference](https://help.github.com/articles/markdown-basics/)
-
-**Enjoy!**
+* `visualsgifs.tags.error`: Default: ["angry", "cry", "pout", "error"]
+* `visualsgifs.tags.success`: Default: ["happy", "dance", "celebrate", "success"]
+* `visualsgifs.tags.afk`: Default: ["sleeping", "bored", "afk"]
+* `visualsgifs.tags.test`: Default: ["happy", "test", "wag"]
