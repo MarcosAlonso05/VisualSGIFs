@@ -63,9 +63,11 @@ AFK Mode: Shows a "sleeping" or "bored" GIF when you haven't typed or moved the 
 
 ![AFK mode](readmestuff/2.gif)
 
-## Extension Settings
+Success Celebration: This extension contributes the following settings: Detects when a Task or Debug Session ends successfully and shows a "happy" GIF.
 
-This extension contributes the following settings:
+![Happy mode](readmestuff/3.gif)
+
+## Extension Settings
 
 #### General
 
