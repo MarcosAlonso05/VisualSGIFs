@@ -48,7 +48,7 @@ C:/MyGifs/                   <-- Root Folder (Configured in settings)
  │         └── cry_yui.gif   <-- Active when "k-on" is enabled
  │
  └── LoveLive/                 <-- SERIES FOLDER
-      └── ...                (Ignored unless "elaina" is added to settings)
+      └── ...                
 ```
 
 ## Features
@@ -57,11 +57,11 @@ Describe specific features of your extension including screenshots of your exten
 
 Smart Error Detection: Reacts to syntax errors (red squigglies) by showing "sad" or "angry" GIFs.
 
-\!\[sintax error\]\(readmestuff/1.gif\)
+![sintax error](readmestuff/1.gif)
 
 AFK Mode: Shows a "sleeping" or "bored" GIF when you haven't typed or moved the mouse for a set time.
 
-\!\[AFK mode\]\(readmestuff/2.gif\)
+![AFK mode](readmestuff/2.gif)
 
 ## Extension Settings
 
