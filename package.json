@@ -1,8 +1,14 @@
 {
   "name": "visualsgifs",
   "displayName": "visualSgifs",
+  "publisher": "MarckAA",
   "description": "Shows local GIFs as editor decorations based on events.",
   "version": "0.0.1",
+  "icon": "readmestuff/icon.png",
+  "repository": {
+      "type": "git",
+      "url": "https://github.com/MarcosAlonso05/VisualSGIFs"
+  },
   "engines": {
     "vscode": "^1.106.0"
   },

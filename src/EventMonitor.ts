@@ -7,9 +7,8 @@ export class EventMonitor implements vscode.Disposable {
     private afkTimer: NodeJS.Timeout | undefined;
     private errorDebounceTimer: NodeJS.Timeout | undefined;
     private lastErrorLine = -1;
-    
-    // List of disposables to clean up when extension deactivates
     private disposables: vscode.Disposable[] = [];
+    private currentMood: 'afk' | 'error' | 'test' | 'success' | null = null;
 
     constructor(
         private configHelper: ConfigHelper,
@@ -20,99 +19,81 @@ export class EventMonitor implements vscode.Disposable {
     public startMonitoring() {
         this.resetAfkTimer();
 
-        // AFK
         this.disposables.push(
-            vscode.workspace.onDidChangeTextDocument(() => this.resetAfkTimer()),
-            vscode.window.onDidChangeActiveTextEditor(() => this.resetAfkTimer()),
-            vscode.window.onDidChangeTextEditorSelection(() => this.resetAfkTimer())
+            vscode.workspace.onDidChangeTextDocument(() => this.onUserActivity()),
+            vscode.window.onDidChangeActiveTextEditor(() => this.onUserActivity()),
+            vscode.window.onDidChangeTextEditorSelection(e => {
+                
+                this.onUserActivity();
+            })
         );
 
-        // Errors
+        // Fails
         this.disposables.push(
             vscode.languages.onDidChangeDiagnostics(e => this.onDiagnosticChange(e))
         );
 
-        // Hide the GIF
-        this.disposables.push(
-            vscode.window.onDidChangeTextEditorSelection(e => {
-                if (e.kind === vscode.TextEditorSelectionChangeKind.Mouse) {
-                    this.displayManager.hideGif();
-                }
-            })
-        );
-
-        // Good execution
+        // Success (Tasks, Debug, Terminal)
         this.disposables.push(
             vscode.tasks.onDidEndTaskProcess(e => {
-                if (e.exitCode === 0) {
-                    this.triggerGif('success');
-                }
+                if (e.exitCode === 0) this.tryTriggerSuccess();
             })
         );
         this.disposables.push(
             vscode.debug.onDidReceiveDebugSessionCustomEvent(e => {
-                if (e.event === 'exited' && e.body?.exitCode === 0) {
-                    this.triggerGif('success');
-                }
-            })
-        );
-        this.disposables.push(
-            vscode.debug.onDidTerminateDebugSession(session => {
-                this.triggerGif('success'); 
+                if (e.event === 'exited' && e.body?.exitCode === 0) this.tryTriggerSuccess();
             })
         );
         if (vscode.window.onDidEndTerminalShellExecution) {
             this.disposables.push(
                 vscode.window.onDidEndTerminalShellExecution(e => {
-                    if (e.exitCode === 0) {
-                        this.triggerGif('success');
-                    }
+                    if (e.exitCode === 0) this.tryTriggerSuccess();
                 })
             );
-        } else {
-            console.warn('[visualSgifs] Shell Integration API not available. Update VS Code for Terminal support.');
         }
-        this.disposables.push(
-            vscode.debug.onDidTerminateDebugSession(session => {
-                console.log('[visualSgifs] Debug session terminated.');
-                this.triggerGif('success');
-            })
-        );
-        
 
-        // Listen for config changes
+        // Configuration
         this.disposables.push(
             vscode.workspace.onDidChangeConfiguration(e => {
                 if (e.affectsConfiguration('visualsgifs')) {
-                    console.log('[visualSgifs] Config updated. Resetting AFK timer.');
                     this.resetAfkTimer();
                 }
             })
         );
     }
 
-    // Clean up timers and listeners.
     public dispose() {
-        if (this.afkTimer) {
-            clearTimeout(this.afkTimer);
-            this.afkTimer = undefined;
-        }
-        
-        // Dispose all listeners
+        if (this.afkTimer) clearTimeout(this.afkTimer);
+        if (this.errorDebounceTimer) clearTimeout(this.errorDebounceTimer);
         this.disposables.forEach(d => d.dispose());
         this.disposables = [];
     }
 
-    private resetAfkTimer() {
-        if (this.afkTimer) {
-            clearTimeout(this.afkTimer);
-        }
+    private onUserActivity() {
+        this.resetAfkTimer();
 
-        this.displayManager.hideGif();
-
-        if (!this.configHelper.isAfkEnabled()) {
+        if (this.currentMood === 'error') {
             return;
         }
+
+        this.forceHideGif();
+    }
+
+    private forceHideGif() {
+        this.displayManager.hideGif();
+        this.currentMood = null;
+    }
+
+    private tryTriggerSuccess() {
+        if (this.configHelper.isSuccessEnabled()) {
+            this.triggerGif('success');
+        }
+    }
+
+    private resetAfkTimer() {
+        if (this.afkTimer) clearTimeout(this.afkTimer);
+        
+        if (!this.configHelper.isAfkEnabled()) return;
 
         const afkTimeInMs = this.configHelper.getAfkTimeInMs();
         if (afkTimeInMs > 0) {
@@ -123,68 +104,69 @@ export class EventMonitor implements vscode.Disposable {
     }
 
     private onDiagnosticChange(diagnosticEvent: vscode.DiagnosticChangeEvent) {
-        
-        if (!this.configHelper.isErrorEnabled()) {
-            return;
-        }
+        if (!this.configHelper.isErrorEnabled()) return;
 
         const activeEditor = vscode.window.activeTextEditor;
         if (!activeEditor) return;
 
         const diagnostics = vscode.languages.getDiagnostics(activeEditor.document.uri);
         const firstError = diagnostics.find(d => d.severity === vscode.DiagnosticSeverity.Error);
-
         const debounceTime = this.configHelper.getErrorDebounceTime();
 
         if (firstError) {
-            if (firstError.range.start.line === this.lastErrorLine) {
-                return;
-            }
+            if (firstError.range.start.line === this.lastErrorLine) return;
 
             if (!this.errorDebounceTimer) {
                 this.errorDebounceTimer = setTimeout(() => {
+                    const curDiagnostics = vscode.languages.getDiagnostics(activeEditor.document.uri);
+                    const curError = curDiagnostics.find(d => d.severity === vscode.DiagnosticSeverity.Error);
                     
-                    const currentDiagnostics = vscode.languages.getDiagnostics(activeEditor.document.uri);
-                    const currentError = currentDiagnostics.find(d => d.severity === vscode.DiagnosticSeverity.Error);
-                    
-                    if (currentError && currentError.range.start.line !== this.lastErrorLine) {
-                        this.lastErrorLine = currentError.range.start.line;
+                    if (curError && curError.range.start.line !== this.lastErrorLine) {
+                        this.lastErrorLine = curError.range.start.line;
                         console.log('[visualSgifs] Error persisted. Triggering GIF.');
                         this.triggerGif('error');
                     }
                     this.errorDebounceTimer = undefined;
-
                 }, debounceTime);
             }
 
         } else {
-            
             if (this.errorDebounceTimer) {
                 clearTimeout(this.errorDebounceTimer);
                 this.errorDebounceTimer = undefined;
-                console.log('[visualSgifs] Error fixed before timeout. GIF cancelled.');
             }
             
-            this.displayManager.hideGif();
-
+            if (this.currentMood === 'error') {
+                this.forceHideGif();
+            }
+            
             this.lastErrorLine = -1;
         }
     }
 
     public async triggerGif(mood: 'afk' | 'error' | 'test' | 'success') {
         try {
+            this.currentMood = mood;
+
+            if (mood !== 'error' && this.errorDebounceTimer) {
+                clearTimeout(this.errorDebounceTimer);
+                this.errorDebounceTimer = undefined;
+            }
+
             const gifPath = await this.gifProvider.getRandomGifPath(mood);
             if (!gifPath) {
                 if (mood !== 'success') {
                     console.warn(`[visualSgifs] No GIF found for mood: ${mood}`);
                 }
+                this.currentMood = null;
                 return;
             }
+
             await this.displayManager.showGif(gifPath);
 
         } catch (error) {
             console.error('[visualSgifs] Error triggering GIF:', error);
-            vscode.window.showErrorMessage(`visualSgifs: An error occurred: ${error}`);
+            this.currentMood = null;
         }
     }
 }
