@@ -8,6 +8,7 @@ export class EventMonitor implements vscode.Disposable {
     private errorDebounceTimer: NodeJS.Timeout | undefined;
     private lastErrorLine = -1;
     private disposables: vscode.Disposable[] = [];
+
     private currentMood: 'afk' | 'error' | 'test' | 'success' | null = null;
 
     constructor(
@@ -22,10 +23,7 @@ export class EventMonitor implements vscode.Disposable {
         this.disposables.push(
             vscode.workspace.onDidChangeTextDocument(() => this.onUserActivity()),
             vscode.window.onDidChangeActiveTextEditor(() => this.onUserActivity()),
-            vscode.window.onDidChangeTextEditorSelection(e => {
-                
-                this.onUserActivity();
-            })
+            vscode.window.onDidChangeTextEditorSelection(() => this.onUserActivity())
         );
 
         // Fails
@@ -73,7 +71,7 @@ export class EventMonitor implements vscode.Disposable {
         this.resetAfkTimer();
 
         if (this.currentMood === 'error') {
-            return;
+            return; 
         }
 
         this.forceHideGif();
@@ -135,11 +133,9 @@ export class EventMonitor implements vscode.Disposable {
                 clearTimeout(this.errorDebounceTimer);
                 this.errorDebounceTimer = undefined;
             }
-            
             if (this.currentMood === 'error') {
                 this.forceHideGif();
             }
-            
             this.lastErrorLine = -1;
         }
     }
@@ -162,7 +158,13 @@ export class EventMonitor implements vscode.Disposable {
                 return;
             }
 
-            await this.displayManager.showGif(gifPath);
+            let durationOverride: number | undefined = undefined;
+            
+            if (mood === 'afk') {
+                durationOverride = 0;
+            }
+
+            await this.displayManager.showGif(gifPath, durationOverride);
 
         } catch (error) {
             console.error('[visualSgifs] Error triggering GIF:', error);

@@ -3,7 +3,7 @@
   "displayName": "visualSgifs",
   "publisher": "MarckAA",
   "description": "Shows local GIFs as editor decorations based on events.",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "icon": "readmestuff/icon.png",
   "repository": {
       "type": "git",

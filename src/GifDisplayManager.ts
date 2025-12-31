@@ -12,7 +12,7 @@ export class GifDisplayManager implements vscode.Disposable {
         this.configHelper = configHelper;
     }
 
-    public async showGif(gifPath: string) {
+    public async showGif(gifPath: string, durationOverride?: number) {
         const editor = vscode.window.activeTextEditor;
         if (!editor) {
             return;
@@ -22,7 +22,11 @@ export class GifDisplayManager implements vscode.Disposable {
 
         const maxWidth = this.configHelper.getMaxWidth();
         const maxHeight = this.configHelper.getMaxHeight();
-        const durationMs = this.configHelper.getDurationInMs();
+        
+        let durationMs = this.configHelper.getDurationInMs();
+        if (durationOverride !== undefined) {
+            durationMs = durationOverride;
+        }
 
         let gifData: Buffer;
         try {
@@ -61,10 +65,8 @@ export class GifDisplayManager implements vscode.Disposable {
     // Update the decorator to show the gif in the cursor position
     private updateGifPosition(editor: vscode.TextEditor) {
         if (!this.currentDecoration) return;
-
         const position = editor.selection.active;
         const range = new vscode.Range(position, position);
-
         editor.setDecorations(this.currentDecoration, [range]);
     }
 
@@ -91,34 +93,21 @@ export class GifDisplayManager implements vscode.Disposable {
         dataUri: string,
         maxWidth: number,
         maxHeight: number
-    ) { 
+    ) {
         return {
             contentText: '',
             textDecoration: `
                 ; 
                 display: inline-block;
-                position: absolute; /* Saca el elemento del flujo para que NO empuje el texto */
-                
-                /* IMPORTANTE: NO definir 'left' ni 'top'. 
-                   Al no definirlos, el 'absolute' empieza exactamente donde está el cursor. */
-
-                /* MOVIMIENTO RELATIVO AL CURSOR */
-                /* translate(X, Y) */
-                /* 60px a la derecha, -${maxHeight}px hacia arriba */
+                position: absolute;
                 transform: translate(60px, -${maxHeight}px);
-
-                /* TAMAÑO */
                 width: ${maxWidth}px;
                 height: ${maxHeight}px;
-                
-                /* IMAGEN */
                 background-image: url("${dataUri}");
                 background-size: contain;
                 background-repeat: no-repeat;
                 background-position: bottom left; 
-                
-                /* PROPIEDADES */
-                pointer-events: none; /* Click fantasma */
+                pointer-events: none;
                 z-index: 1;
             `,
         };

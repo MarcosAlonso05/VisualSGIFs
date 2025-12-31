@@ -51,8 +51,6 @@ export class ConfigHelper {
         return this.getConfig().get<string[]>(configKey, []);
     }
 
-    // --- Display Settings ---
-
     // Gets the configured max width for the GIF.
     public getMaxWidth(): number {
         return this.getConfig().get<number>('display.maxWidth', 300);
