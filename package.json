@@ -40,7 +40,7 @@
         "visualsgifs.activeSeries": {
           "type": "array",
           "default": [],
-          "description": "List of series (sub-folders) to activate. (e.g., [\"k-on\", \"lain\"]) GIFs in the root folder are always active."
+          "description": "List of series (sub-folders) to activate. (e.g., [\"k-on\", \"vocaloid\"]) GIFs in the root folder are always active."
         },
         "visualsgifs.display.maxWidth": {
           "type": "number",

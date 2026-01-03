@@ -13,11 +13,11 @@ VisualSGIFs uses a smart hierarchy that allows you to organize your GIFs by Seri
 1. File Naming (Mandatory)
     Files must start with the mood tag followed by an underscore _.
 
-   - ✅ `happy_01.gif`
+   - `happy_01.gif` (Good)
 
-   - ✅ `error_computer_smash.gif`
+   - `error_computer_smash.gif` (Good)
 
-   - ❌ `my_happy_gif.gif` (Won't work because "my" is not a configured tag)
+   - `my_happy_gif.gif` (Won't work because "my" is not a configured tag)
 
 2. Folder Hierarchy
     You can organize your GIFs into three levels:
